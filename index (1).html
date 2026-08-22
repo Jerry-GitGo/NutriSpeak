@@ -1,0 +1,887 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NutriVoice – Ernährungs-Tracker</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #0f1117;
+      --bg2:       #1a1d27;
+      --bg3:       #22263a;
+      --accent:    #4f8ef7;
+      --accent2:   #7c5cfc;
+      --green:     #34d399;
+      --yellow:    #fbbf24;
+      --red:       #f87171;
+      --text:      #e8eaf6;
+      --text2:     #9ca3c4;
+      --border:    #2e3250;
+      --radius:    14px;
+      --shadow:    0 4px 24px rgba(0,0,0,0.4);
+    }
+    html { font-size: 16px; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    header {
+      width: 100%;
+      background: linear-gradient(135deg, #1a1d27 0%, #22263a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { font-size: 28px; }
+    .logo-text { font-size: 1.3rem; font-weight: 700; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-date { color: var(--text2); font-size: 0.85rem; }
+    .btn-settings {
+      background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text2); border-radius: 8px; padding: 6px 12px;
+      cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+    }
+    .btn-settings:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Main Layout ─────────────────────────────────────────────────────── */
+    main {
+      width: 100%; max-width: 860px;
+      padding: 24px 16px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    /* ── Card ────────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text2); margin-bottom: 14px;
+    }
+
+    /* ── Makro-Übersicht ─────────────────────────────────────────────────── */
+    .macro-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    }
+    .macro-box {
+      background: var(--bg3); border-radius: 10px; padding: 14px 10px;
+      text-align: center; border: 1px solid var(--border);
+    }
+    .macro-box .val { font-size: 1.5rem; font-weight: 700; }
+    .macro-box .lbl { font-size: 0.72rem; color: var(--text2); margin-top: 2px; }
+    .macro-box .sub { font-size: 0.7rem; color: var(--text2); margin-top: 4px; }
+    .macro-box.kcal .val { color: var(--accent); }
+    .macro-box.prot .val { color: var(--green); }
+    .macro-box.fat  .val { color: var(--yellow); }
+    .macro-box.carb .val { color: #f472b6; }
+
+    /* Progress bars */
+    .progress-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .progress-row { display: flex; align-items: center; gap: 10px; }
+    .progress-label { width: 80px; font-size: 0.78rem; color: var(--text2); }
+    .progress-bar-bg {
+      flex: 1; height: 8px; background: var(--bg3);
+      border-radius: 99px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; border-radius: 99px;
+      transition: width 0.5s ease;
+    }
+    .progress-pct { width: 38px; font-size: 0.75rem; color: var(--text2); text-align: right; }
+
+    /* ── Spracheingabe ───────────────────────────────────────────────────── */
+    .voice-section { text-align: center; }
+    .meal-tabs {
+      display: flex; gap: 8px; justify-content: center; margin-bottom: 18px;
+    }
+    .meal-tab {
+      padding: 7px 18px; border-radius: 99px; font-size: 0.85rem; font-weight: 600;
+      border: 1px solid var(--border); background: var(--bg3); color: var(--text2);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .meal-tab.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color: transparent; color: #fff;
+    }
+    .mic-btn {
+      width: 90px; height: 90px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; cursor: pointer; font-size: 2.2rem;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+      box-shadow: 0 0 0 0 rgba(79,142,247,0.4);
+      transition: transform 0.2s;
+    }
+    .mic-btn:hover { transform: scale(1.05); }
+    .mic-btn.listening {
+      animation: pulse 1.2s infinite;
+      background: linear-gradient(135deg, #f87171, #f472b6);
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0   rgba(248,113,113,0.5); }
+      70%  { box-shadow: 0 0 0 20px rgba(248,113,113,0); }
+      100% { box-shadow: 0 0 0 0   rgba(248,113,113,0); }
+    }
+    .voice-status {
+      font-size: 0.9rem; color: var(--text2); min-height: 22px; margin-bottom: 8px;
+    }
+    .voice-transcript {
+      font-size: 1rem; color: var(--text); font-style: italic;
+      min-height: 24px; margin-bottom: 12px;
+    }
+    .manual-input-row {
+      display: flex; gap: 8px; margin-top: 10px;
+    }
+    .manual-input {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px; color: var(--text);
+      font-size: 0.95rem; outline: none;
+    }
+    .manual-input:focus { border-color: var(--accent); }
+    .btn-search {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: 8px; padding: 10px 18px;
+      color: #fff; font-weight: 600; cursor: pointer; font-size: 0.9rem;
+      transition: opacity 0.2s;
+    }
+    .btn-search:hover { opacity: 0.85; }
+
+    /* ── Suchergebnisse / Rückkopplung ───────────────────────────────────── */
+    #results-section { display: none; }
+    .results-title { font-size: 0.95rem; color: var(--text2); margin-bottom: 12px; }
+    .result-item {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .result-item:hover { border-color: var(--accent); background: #1e2235; }
+    .result-item.selected { border-color: var(--green); background: #0d2018; }
+    .result-name { font-weight: 600; font-size: 0.95rem; }
+    .result-brand { font-size: 0.78rem; color: var(--text2); margin-top: 2px; }
+    .result-macros {
+      display: flex; gap: 10px; font-size: 0.78rem; margin-top: 6px;
+    }
+    .result-macros span { color: var(--text2); }
+    .result-macros .kcal-val { color: var(--accent); font-weight: 600; }
+    .result-macros .prot-val { color: var(--green); }
+    .result-macros .fat-val  { color: var(--yellow); }
+    .result-macros .carb-val { color: #f472b6; }
+    .result-check { font-size: 1.4rem; opacity: 0; transition: opacity 0.2s; }
+    .result-item.selected .result-check { opacity: 1; }
+
+    /* Portion selector */
+    #portion-section { display: none; margin-top: 14px; }
+    .portion-row {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    }
+    .portion-label { font-size: 0.9rem; color: var(--text2); }
+    .portion-input {
+      width: 90px; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; color: var(--text);
+      font-size: 1rem; text-align: center; outline: none;
+    }
+    .portion-input:focus { border-color: var(--accent); }
+    .portion-unit { color: var(--text2); font-size: 0.9rem; }
+    .portion-preview {
+      font-size: 0.85rem; color: var(--text2); margin-top: 8px;
+    }
+    .btn-add {
+      background: linear-gradient(135deg, var(--green), #059669);
+      border: none; border-radius: 8px; padding: 10px 22px;
+      color: #fff; font-weight: 700; cursor: pointer; font-size: 0.95rem;
+      margin-top: 12px; transition: opacity 0.2s;
+    }
+    .btn-add:hover { opacity: 0.85; }
+
+    /* ── Mahlzeiten-Log ──────────────────────────────────────────────────── */
+    .meals-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    }
+    @media (max-width: 600px) { .meals-grid { grid-template-columns: 1fr; } }
+    .meal-card {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px;
+    }
+    .meal-card-title {
+      font-size: 0.85rem; font-weight: 700; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .meal-entry {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem;
+    }
+    .meal-entry:last-child { border-bottom: none; }
+    .meal-entry-name { color: var(--text); flex: 1; }
+    .meal-entry-kcal { color: var(--accent); font-weight: 600; white-space: nowrap; margin-left: 8px; }
+    .meal-entry-del {
+      background: none; border: none; color: var(--text2); cursor: pointer;
+      font-size: 0.9rem; padding: 0 0 0 6px; transition: color 0.2s;
+    }
+    .meal-entry-del:hover { color: var(--red); }
+    .meal-empty { color: var(--text2); font-size: 0.8rem; font-style: italic; }
+    .meal-total {
+      margin-top: 8px; font-size: 0.78rem; color: var(--text2);
+      border-top: 1px solid var(--border); padding-top: 6px;
+    }
+
+    /* ── Einstellungen Modal ─────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px; width: 100%; max-width: 420px;
+      box-shadow: var(--shadow);
+    }
+    .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; }
+    .setting-row { margin-bottom: 14px; }
+    .setting-row label { display: block; font-size: 0.82rem; color: var(--text2); margin-bottom: 5px; }
+    .setting-row input {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 12px; color: var(--text);
+      font-size: 0.95rem; outline: none;
+    }
+    .setting-row input:focus { border-color: var(--accent); }
+    .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-save {
+      flex: 1; background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: 8px; padding: 10px;
+      color: #fff; font-weight: 700; cursor: pointer;
+    }
+    .btn-cancel {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px; color: var(--text2); cursor: pointer;
+    }
+
+    /* ── Toast ───────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 99px; padding: 10px 22px; font-size: 0.9rem;
+      box-shadow: var(--shadow); opacity: 0; transition: opacity 0.3s;
+      pointer-events: none; z-index: 300; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── Loading spinner ─────────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── No speech fallback notice ───────────────────────────────────────── */
+    #no-speech-notice {
+      display: none; background: #2a1f0a; border: 1px solid var(--yellow);
+      border-radius: 8px; padding: 10px 14px; font-size: 0.82rem;
+      color: var(--yellow); margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <span class="logo-icon">🥗</span>
+    <span class="logo-text">NutriVoice</span>
+  </div>
+  <span class="header-date" id="header-date"></span>
+  <button class="btn-settings" onclick="openSettings()">⚙️ Ziele</button>
+</header>
+
+<!-- ── Main ────────────────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- Makro-Übersicht -->
+  <div class="card">
+    <div class="card-title">Heutige Makros</div>
+    <div class="macro-grid">
+      <div class="macro-box kcal">
+        <div class="val" id="total-kcal">0</div>
+        <div class="lbl">kcal</div>
+        <div class="sub" id="goal-kcal-lbl">/ 2000</div>
+      </div>
+      <div class="macro-box prot">
+        <div class="val" id="total-prot">0g</div>
+        <div class="lbl">Protein</div>
+        <div class="sub" id="goal-prot-lbl">/ 150g</div>
+      </div>
+      <div class="macro-box fat">
+        <div class="val" id="total-fat">0g</div>
+        <div class="lbl">Fett</div>
+        <div class="sub" id="goal-fat-lbl">/ 65g</div>
+      </div>
+      <div class="macro-box carb">
+        <div class="val" id="total-carb">0g</div>
+        <div class="lbl">Kohlenhydrate</div>
+        <div class="sub" id="goal-carb-lbl">/ 200g</div>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-row">
+        <span class="progress-label">Kalorien</span>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar-kcal" style="width:0%;background:var(--accent)"></div></div>
+        <span class="progress-pct" id="pct-kcal">0%</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Protein</span>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar-prot" style="width:0%;background:var(--green)"></div></div>
+        <span class="progress-pct" id="pct-prot">0%</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Fett</span>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar-fat" style="width:0%;background:var(--yellow)"></div></div>
+        <span class="progress-pct" id="pct-fat">0%</span>
+      </div>
+      <div class="progress-row">
+        <span class="progress-label">Kohlenhydrate</span>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="bar-carb" style="width:0%;background:#f472b6"></div></div>
+        <span class="progress-pct" id="pct-carb">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spracheingabe -->
+  <div class="card">
+    <div class="card-title">Lebensmittel hinzufügen</div>
+    <div class="voice-section">
+      <div class="meal-tabs">
+        <button class="meal-tab active" onclick="setMeal('breakfast',this)">🌅 Frühstück</button>
+        <button class="meal-tab" onclick="setMeal('lunch',this)">☀️ Mittagessen</button>
+        <button class="meal-tab" onclick="setMeal('dinner',this)">🌙 Abendessen</button>
+        <button class="meal-tab" onclick="setMeal('snack',this)">🍎 Snack</button>
+      </div>
+      <div id="no-speech-notice">
+        ⚠️ Spracheingabe nicht verfügbar – bitte Chrome/Edge verwenden oder Text eingeben.
+      </div>
+      <button class="mic-btn" id="mic-btn" onclick="toggleListening()" title="Spracheingabe starten">
+        🎤
+      </button>
+      <div class="voice-status" id="voice-status">Tippe auf das Mikrofon oder gib Text ein</div>
+      <div class="voice-transcript" id="voice-transcript"></div>
+      <div class="manual-input-row">
+        <input class="manual-input" id="manual-input" type="text"
+               placeholder="z. B. Haferflocken mit Milch, 200g Hähnchenbrust..."
+               onkeydown="if(event.key==='Enter') searchFood()" />
+        <button class="btn-search" onclick="searchFood()">🔍 Suchen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suchergebnisse -->
+  <div class="card" id="results-section">
+    <div class="card-title">Suchergebnisse – Rückkopplung</div>
+    <div class="results-title" id="results-title"></div>
+    <div id="results-list"></div>
+    <div id="portion-section">
+      <div class="portion-row">
+        <span class="portion-label">Menge:</span>
+        <input class="portion-input" id="portion-input" type="number" value="100" min="1" max="2000"
+               oninput="updatePortionPreview()" />
+        <span class="portion-unit">g / ml</span>
+      </div>
+      <div class="portion-preview" id="portion-preview"></div>
+      <button class="btn-add" onclick="addSelectedFood()">✅ Hinzufügen</button>
+    </div>
+  </div>
+
+  <!-- Mahlzeiten-Log -->
+  <div class="card">
+    <div class="card-title">Heutiges Protokoll</div>
+    <div class="meals-grid">
+      <div class="meal-card">
+        <div class="meal-card-title">🌅 Frühstück</div>
+        <div id="log-breakfast"><div class="meal-empty">Noch nichts eingetragen</div></div>
+        <div class="meal-total" id="total-breakfast"></div>
+      </div>
+      <div class="meal-card">
+        <div class="meal-card-title">☀️ Mittagessen</div>
+        <div id="log-lunch"><div class="meal-empty">Noch nichts eingetragen</div></div>
+        <div class="meal-total" id="total-lunch"></div>
+      </div>
+      <div class="meal-card">
+        <div class="meal-card-title">🌙 Abendessen</div>
+        <div id="log-dinner"><div class="meal-empty">Noch nichts eingetragen</div></div>
+        <div class="meal-total" id="total-dinner"></div>
+      </div>
+    </div>
+    <div class="meal-card" style="margin-top:14px">
+      <div class="meal-card-title">🍎 Snacks</div>
+      <div id="log-snack"><div class="meal-empty">Noch nichts eingetragen</div></div>
+      <div class="meal-total" id="total-snack"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── Einstellungen Modal ──────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <div class="modal-title">⚙️ Tagesziele anpassen</div>
+    <div class="setting-row">
+      <label>Kalorien (kcal)</label>
+      <input type="number" id="set-kcal" value="2000" />
+    </div>
+    <div class="setting-row">
+      <label>Protein (g)</label>
+      <input type="number" id="set-prot" value="150" />
+    </div>
+    <div class="setting-row">
+      <label>Fett (g)</label>
+      <input type="number" id="set-fat" value="65" />
+    </div>
+    <div class="setting-row">
+      <label>Kohlenhydrate (g)</label>
+      <input type="number" id="set-carb" value="200" />
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeSettings()">Abbrechen</button>
+      <button class="btn-save" onclick="saveSettings()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ────────────────────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ── Script ───────────────────────────────────────────────────────────────── -->
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+const STATE = {
+  goals: { kcal: 2000, prot: 150, fat: 65, carb: 200 },
+  meals: { breakfast: [], lunch: [], dinner: [], snack: [] },
+  currentMeal: 'breakfast',
+  selectedFood: null,
+  searchResults: [],
+  recognition: null,
+  listening: false
+};
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadFromStorage();
+  updateDate();
+  renderAll();
+  initSpeech();
+});
+
+function updateDate() {
+  const d = new Date();
+  document.getElementById('header-date').textContent =
+    d.toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+}
+
+// ── LocalStorage ───────────────────────────────────────────────────────────────
+function saveToStorage() {
+  const today = new Date().toDateString();
+  localStorage.setItem('nutrivoice_data', JSON.stringify({ date: today, meals: STATE.meals, goals: STATE.goals }));
+}
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem('nutrivoice_data');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    const today = new Date().toDateString();
+    if (data.date === today) STATE.meals = data.meals;
+    if (data.goals) STATE.goals = data.goals;
+    // sync settings inputs
+    document.getElementById('set-kcal').value = STATE.goals.kcal;
+    document.getElementById('set-prot').value = STATE.goals.prot;
+    document.getElementById('set-fat').value  = STATE.goals.fat;
+    document.getElementById('set-carb').value = STATE.goals.carb;
+  } catch(e) {}
+}
+
+// ── Speech Recognition ─────────────────────────────────────────────────────────
+function initSpeech() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    document.getElementById('no-speech-notice').style.display = 'block';
+    document.getElementById('mic-btn').style.opacity = '0.4';
+    document.getElementById('mic-btn').style.cursor = 'not-allowed';
+    return;
+  }
+  const r = new SpeechRecognition();
+  r.lang = 'de-DE';
+  r.continuous = false;
+  r.interimResults = true;
+  r.maxAlternatives = 3;
+
+  r.onstart = () => {
+    STATE.listening = true;
+    document.getElementById('mic-btn').classList.add('listening');
+    document.getElementById('voice-status').textContent = '🔴 Höre zu … sprich jetzt!';
+  };
+  r.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    document.getElementById('voice-transcript').textContent = '"' + (final || interim) + '"';
+    if (final) {
+      document.getElementById('manual-input').value = final;
+      searchFood(final);
+    }
+  };
+  r.onerror = (e) => {
+    stopListening();
+    if (e.error !== 'no-speech') showToast('Mikrofon-Fehler: ' + e.error);
+  };
+  r.onend = () => stopListening();
+  STATE.recognition = r;
+}
+
+function toggleListening() {
+  if (!STATE.recognition) { showToast('Spracheingabe nicht verfügbar – bitte Text eingeben'); return; }
+  if (STATE.listening) { STATE.recognition.stop(); }
+  else { STATE.recognition.start(); }
+}
+function stopListening() {
+  STATE.listening = false;
+  document.getElementById('mic-btn').classList.remove('listening');
+  document.getElementById('voice-status').textContent = 'Tippe auf das Mikrofon oder gib Text ein';
+}
+
+// ── Meal selection ─────────────────────────────────────────────────────────────
+function setMeal(meal, btn) {
+  STATE.currentMeal = meal;
+  document.querySelectorAll('.meal-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── Food Search ────────────────────────────────────────────────────────────────
+async function searchFood(query) {
+  query = query || document.getElementById('manual-input').value.trim();
+  if (!query) { showToast('Bitte zuerst ein Lebensmittel eingeben'); return; }
+
+  // Parse quantity from query (e.g. "200g Haferflocken" → 200, "Haferflocken")
+  const qtyMatch = query.match(/(\d+)\s*(g|ml|gramm|gram|stück|stk|tasse|portion)/i);
+  if (qtyMatch) {
+    document.getElementById('portion-input').value = parseInt(qtyMatch[1]);
+    query = query.replace(qtyMatch[0], '').trim();
+  }
+
+  const resultsSection = document.getElementById('results-section');
+  const resultsList    = document.getElementById('results-list');
+  const resultsTitle   = document.getElementById('results-title');
+  resultsSection.style.display = 'block';
+  resultsList.innerHTML = '<span class="spinner"></span> Suche in Lebensmitteldatenbanken …';
+  document.getElementById('portion-section').style.display = 'none';
+  STATE.selectedFood = null;
+
+  // Fuzzy: split multi-component queries
+  const terms = parseQueryTerms(query);
+  resultsTitle.textContent = `Ergebnisse für: "${query}" (${terms.length > 1 ? terms.join(' + ') : query})`;
+
+  let results = [];
+  try {
+    // Search all terms, merge results
+    for (const term of terms) {
+      const r = await searchOpenFoodFacts(term);
+      results = results.concat(r);
+    }
+    // Deduplicate by id
+    const seen = new Set();
+    results = results.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
+    // Score & sort by relevance
+    results = scoreResults(results, query).slice(0, 8);
+  } catch(e) {
+    results = [];
+  }
+
+  // Fallback to USDA if too few results
+  if (results.length < 3) {
+    try {
+      const usda = await searchUSDA(terms[0]);
+      const seen = new Set(results.map(r => r.id));
+      for (const u of usda) { if (!seen.has(u.id)) results.push(u); }
+      results = results.slice(0, 8);
+    } catch(e) {}
+  }
+
+  renderResults(results, query);
+}
+
+// Parse fuzzy query into search terms
+function parseQueryTerms(query) {
+  // Remove filler words
+  const fillers = ['mit','und','ein','eine','einer','etwas','etwas','zum','zur','beim','vom','von','auf','in','an','am','im','des','der','die','das','ich','habe','hatte','gegessen','getrunken','gehabt'];
+  const words = query.toLowerCase().split(/[\s,]+/).filter(w => w.length > 2 && !fillers.includes(w));
+  // Group into max 3 meaningful terms
+  if (words.length <= 1) return [query];
+  if (words.length <= 3) return words;
+  // For longer queries, try full query + first 2 words
+  return [query, words.slice(0,2).join(' ')];
+}
+
+// Score results by relevance to query
+function scoreResults(results, query) {
+  const q = query.toLowerCase();
+  return results.map(r => {
+    const name = (r.name || '').toLowerCase();
+    let score = 0;
+    if (name === q) score += 100;
+    else if (name.startsWith(q)) score += 60;
+    else if (name.includes(q)) score += 40;
+    else {
+      const words = q.split(' ');
+      words.forEach(w => { if (name.includes(w)) score += 10; });
+    }
+    // Prefer items with complete nutrition data
+    if (r.kcal > 0 && r.prot >= 0 && r.fat >= 0 && r.carb >= 0) score += 20;
+    return { ...r, score };
+  }).sort((a,b) => b.score - a.score);
+}
+
+// ── Open Food Facts API ────────────────────────────────────────────────────────
+async function searchOpenFoodFacts(query) {
+  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10&lc=de&cc=de&fields=id,product_name,brands,nutriments,serving_size`;
+  const resp = await fetch(url);
+  if (!resp.ok) return [];
+  const data = await resp.json();
+  return (data.products || []).map(p => {
+    const n = p.nutriments || {};
+    return {
+      id:    'off_' + (p.id || p.code || Math.random()),
+      name:  p.product_name || 'Unbekannt',
+      brand: p.brands || '',
+      kcal:  Math.round(n['energy-kcal_100g'] || n['energy_100g'] / 4.184 || 0),
+      prot:  Math.round((n['proteins_100g'] || 0) * 10) / 10,
+      fat:   Math.round((n['fat_100g'] || 0) * 10) / 10,
+      carb:  Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
+      per:   100,
+      source: 'Open Food Facts'
+    };
+  }).filter(p => p.name && p.name !== 'Unbekannt' && p.kcal > 0);
+}
+
+// ── USDA FoodData Central API ──────────────────────────────────────────────────
+async function searchUSDA(query) {
+  // Public demo key – limited but works for testing
+  const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&pageSize=6&api_key=DEMO_KEY`;
+  const resp = await fetch(url);
+  if (!resp.ok) return [];
+  const data = await resp.json();
+  return (data.foods || []).map(f => {
+    const getNutrient = (id) => {
+      const n = (f.foodNutrients || []).find(n => n.nutrientId === id);
+      return n ? Math.round(n.value * 10) / 10 : 0;
+    };
+    return {
+      id:    'usda_' + f.fdcId,
+      name:  f.description || 'Unbekannt',
+      brand: f.brandOwner || f.dataType || 'USDA',
+      kcal:  Math.round(getNutrient(1008)),
+      prot:  getNutrient(1003),
+      fat:   getNutrient(1004),
+      carb:  getNutrient(1005),
+      per:   100,
+      source: 'USDA FoodData'
+    };
+  }).filter(f => f.name && f.kcal > 0);
+}
+
+// ── Render Results ─────────────────────────────────────────────────────────────
+function renderResults(results, query) {
+  const list = document.getElementById('results-list');
+  if (!results.length) {
+    list.innerHTML = `<div style="color:var(--text2);font-size:0.9rem;padding:10px 0">
+      Keine Ergebnisse gefunden. Versuche einen anderen Begriff oder prüfe die Schreibweise.
+    </div>`;
+    return;
+  }
+  list.innerHTML = results.map((r, i) => `
+    <div class="result-item" id="result-${i}" onclick="selectResult(${i})">
+      <div style="flex:1">
+        <div class="result-name">${escHtml(r.name)}</div>
+        <div class="result-brand">${escHtml(r.brand)} ${r.source ? '· ' + r.source : ''}</div>
+        <div class="result-macros">
+          <span class="kcal-val">⚡ ${r.kcal} kcal</span>
+          <span class="prot-val">💪 ${r.prot}g P</span>
+          <span class="fat-val">🧈 ${r.fat}g F</span>
+          <span class="carb-val">🌾 ${r.carb}g KH</span>
+          <span style="color:var(--border)">pro 100g</span>
+        </div>
+      </div>
+      <div class="result-check">✅</div>
+    </div>
+  `).join('');
+  STATE.searchResults = results;
+}
+
+function selectResult(i) {
+  document.querySelectorAll('.result-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('result-' + i).classList.add('selected');
+  STATE.selectedFood = STATE.searchResults[i];
+  document.getElementById('portion-section').style.display = 'block';
+  updatePortionPreview();
+  document.getElementById('portion-section').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function updatePortionPreview() {
+  if (!STATE.selectedFood) return;
+  const g = parseFloat(document.getElementById('portion-input').value) || 100;
+  const f = STATE.selectedFood;
+  const factor = g / 100;
+  document.getElementById('portion-preview').innerHTML =
+    `<strong>${g}g</strong> entspricht: ` +
+    `<span style="color:var(--accent)">${Math.round(f.kcal * factor)} kcal</span> · ` +
+    `<span style="color:var(--green)">${Math.round(f.prot * factor * 10)/10}g Protein</span> · ` +
+    `<span style="color:var(--yellow)">${Math.round(f.fat * factor * 10)/10}g Fett</span> · ` +
+    `<span style="color:#f472b6">${Math.round(f.carb * factor * 10)/10}g KH</span>`;
+}
+
+// ── Add Food to Log ────────────────────────────────────────────────────────────
+function addSelectedFood() {
+  if (!STATE.selectedFood) { showToast('Bitte zuerst ein Lebensmittel auswählen'); return; }
+  const g = parseFloat(document.getElementById('portion-input').value) || 100;
+  const f = STATE.selectedFood;
+  const factor = g / 100;
+  const entry = {
+    id:    Date.now(),
+    name:  f.name,
+    grams: g,
+    kcal:  Math.round(f.kcal * factor),
+    prot:  Math.round(f.prot * factor * 10) / 10,
+    fat:   Math.round(f.fat  * factor * 10) / 10,
+    carb:  Math.round(f.carb * factor * 10) / 10,
+  };
+  STATE.meals[STATE.currentMeal].push(entry);
+  saveToStorage();
+  renderAll();
+  // Reset
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('manual-input').value = '';
+  document.getElementById('voice-transcript').textContent = '';
+  STATE.selectedFood = null;
+  const mealNames = { breakfast:'Frühstück', lunch:'Mittagessen', dinner:'Abendessen', snack:'Snack' };
+  showToast(`✅ ${f.name} (${g}g) zu ${mealNames[STATE.currentMeal]} hinzugefügt`);
+}
+
+// ── Remove Entry ───────────────────────────────────────────────────────────────
+function removeEntry(meal, id) {
+  STATE.meals[meal] = STATE.meals[meal].filter(e => e.id !== id);
+  saveToStorage();
+  renderAll();
+}
+
+// ── Render All ─────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderMacros();
+  renderMealLog('breakfast');
+  renderMealLog('lunch');
+  renderMealLog('dinner');
+  renderMealLog('snack');
+}
+
+function renderMacros() {
+  const totals = { kcal: 0, prot: 0, fat: 0, carb: 0 };
+  Object.values(STATE.meals).forEach(entries =>
+    entries.forEach(e => {
+      totals.kcal += e.kcal; totals.prot += e.prot;
+      totals.fat  += e.fat;  totals.carb += e.carb;
+    })
+  );
+  const g = STATE.goals;
+  document.getElementById('total-kcal').textContent = Math.round(totals.kcal);
+  document.getElementById('total-prot').textContent = Math.round(totals.prot * 10)/10 + 'g';
+  document.getElementById('total-fat').textContent  = Math.round(totals.fat  * 10)/10 + 'g';
+  document.getElementById('total-carb').textContent = Math.round(totals.carb * 10)/10 + 'g';
+  document.getElementById('goal-kcal-lbl').textContent = '/ ' + g.kcal;
+  document.getElementById('goal-prot-lbl').textContent = '/ ' + g.prot + 'g';
+  document.getElementById('goal-fat-lbl').textContent  = '/ ' + g.fat  + 'g';
+  document.getElementById('goal-carb-lbl').textContent = '/ ' + g.carb + 'g';
+
+  const setBar = (id, pctId, val, goal, color) => {
+    const pct = Math.min(100, Math.round(val / goal * 100));
+    document.getElementById(id).style.width = pct + '%';
+    document.getElementById(id).style.background = pct > 100 ? 'var(--red)' : color;
+    document.getElementById(pctId).textContent = pct + '%';
+  };
+  setBar('bar-kcal','pct-kcal', totals.kcal, g.kcal, 'var(--accent)');
+  setBar('bar-prot','pct-prot', totals.prot, g.prot, 'var(--green)');
+  setBar('bar-fat', 'pct-fat',  totals.fat,  g.fat,  'var(--yellow)');
+  setBar('bar-carb','pct-carb', totals.carb, g.carb, '#f472b6');
+}
+
+function renderMealLog(meal) {
+  const entries = STATE.meals[meal];
+  const container = document.getElementById('log-' + meal);
+  const totalEl   = document.getElementById('total-' + meal);
+  if (!entries.length) {
+    container.innerHTML = '<div class="meal-empty">Noch nichts eingetragen</div>';
+    totalEl.textContent = '';
+    return;
+  }
+  container.innerHTML = entries.map(e => `
+    <div class="meal-entry">
+      <span class="meal-entry-name">${escHtml(e.name)} <span style="color:var(--text2);font-size:0.75rem">(${e.grams}g)</span></span>
+      <span class="meal-entry-kcal">${e.kcal} kcal</span>
+      <button class="meal-entry-del" onclick="removeEntry('${meal}',${e.id})" title="Entfernen">✕</button>
+    </div>
+  `).join('');
+  const tot = entries.reduce((a,e) => ({ kcal: a.kcal+e.kcal, prot: a.prot+e.prot, fat: a.fat+e.fat, carb: a.carb+e.carb }), {kcal:0,prot:0,fat:0,carb:0});
+  totalEl.innerHTML = `Gesamt: <strong>${Math.round(tot.kcal)} kcal</strong> · ${Math.round(tot.prot*10)/10}g P · ${Math.round(tot.fat*10)/10}g F · ${Math.round(tot.carb*10)/10}g KH`;
+}
+
+// ── Settings ───────────────────────────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('set-kcal').value = STATE.goals.kcal;
+  document.getElementById('set-prot').value = STATE.goals.prot;
+  document.getElementById('set-fat').value  = STATE.goals.fat;
+  document.getElementById('set-carb').value = STATE.goals.carb;
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+function saveSettings() {
+  STATE.goals.kcal = parseInt(document.getElementById('set-kcal').value) || 2000;
+  STATE.goals.prot = parseInt(document.getElementById('set-prot').value) || 150;
+  STATE.goals.fat  = parseInt(document.getElementById('set-fat').value)  || 65;
+  STATE.goals.carb = parseInt(document.getElementById('set-carb').value) || 200;
+  saveToStorage();
+  renderMacros();
+  closeSettings();
+  showToast('✅ Ziele gespeichert');
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
